@@ -2,19 +2,41 @@
 // Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
 // session persistence, api calls, and more.
 const Alexa = require('ask-sdk-core');
+const Axios = require('axios');
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    handle(handlerInput) {
-        const speakOutput = 'Welcome, you can say Hello or Help. Which would you like to try?';
+    async handle(handlerInput) {
+
+        // アクセストークンを取得
+        const token = Alexa.getAccountLinkingAccessToken(handlerInput.requestEnvelope);
+        console.log(`アクセストークン : ${token}`);
+
+        // 情報取得
+        const url = `https://api.fitbit.com/1/user/-/activities/heart/date/today/1d.json`;
+        const headers = {
+            Authorization: `Bearer ${token}`
+        };
+        let response;
+        try {
+            // リクエスト実行
+            response = await Axios.get(url, { headers: headers });
+            console.log(`レスポンス: ${JSON.stringify(response.data)}`);
+        } catch (error) {
+            throw new Error(`get fitbit data error , url:${url} , error:${error}`);
+        }
+        const restingHeartRate = response.data['activities-heart'][0].value.restingHeartRate;
+        const speakOutput = `今日の安静時の心拍数は${restingHeartRate}です。`;
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(speakOutput)
+            .withSimpleCard('測定結果', speakOutput)
             .getResponse();
     }
 };
+
 const HelloWorldIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -102,6 +124,20 @@ const ErrorHandler = {
     }
 };
 
+// リクエストインターセプター(エラー調査用)
+const RequestLog = {
+    process(handlerInput) {
+        //console.log("REQUEST ENVELOPE = " + JSON.stringify(handlerInput.requestEnvelope));
+        console.log("HANDLER INPUT = " + JSON.stringify(handlerInput));
+        const requestType = Alexa.getRequestType(handlerInput.requestEnvelope);
+        console.log("REQUEST TYPE =  " + requestType);
+        if (requestType === 'IntentRequest') {
+            console.log("INTENT NAME =  " + Alexa.getIntentName(handlerInput.requestEnvelope));
+        }
+        return;
+    }
+};
+
 // The SkillBuilder acts as the entry point for your skill, routing all request and response
 // payloads to the handlers above. Make sure any new handlers or interceptors you've
 // defined are included below. The order matters - they're processed top to bottom.
@@ -113,8 +149,9 @@ exports.handler = Alexa.SkillBuilders.custom()
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler,
         IntentReflectorHandler, // make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
-        ) 
+    )
     .addErrorHandlers(
         ErrorHandler,
-        )
+    )
+    .addRequestInterceptors(RequestLog)
     .lambda();

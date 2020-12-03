@@ -1,7 +1,7 @@
 {
     "interactionModel": {
         "languageModel": {
-            "invocationName": "フィットビットテスト",
+            "invocationName": "スマートウォッチテスト",
             "intents": [
                 {
                     "name": "AMAZON.CancelIntent",
