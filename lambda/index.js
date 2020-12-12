@@ -15,24 +15,16 @@ const LaunchRequestHandler = {
         console.log(`アクセストークン : ${token}`);
 
         // 情報取得
-        const url = `https://api.fitbit.com/1/user/-/activities/heart/date/today/1d.json`;
-        const headers = {
-            Authorization: `Bearer ${token}`
-        };
-        let response;
-        try {
-            // リクエスト実行
-            response = await Axios.get(url, { headers: headers });
-            console.log(`レスポンス: ${JSON.stringify(response.data)}`);
-        } catch (error) {
-            throw new Error(`get fitbit data error , url:${url} , error:${error}`);
-        }
+        const response = await Axios.get(
+            'https://api.fitbit.com/1/user/-/activities/heart/date/today/1d.json',
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        console.log(`レスポンス: ${JSON.stringify(response.data)}`);
         const restingHeartRate = response.data['activities-heart'][0].value.restingHeartRate;
-        const speakOutput = `今日の安静時の心拍数は${restingHeartRate}です。`;
 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .withSimpleCard('測定結果', speakOutput)
+            .speak(`今日の安静時の心拍数は${restingHeartRate}です。`)
             .getResponse();
     }
 };
